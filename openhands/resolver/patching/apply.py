@@ -7,6 +7,9 @@ import tempfile
 from .exceptions import HunkApplyException, SubprocessException
 from .snippets import remove, which
 
+def _normalize_whitespace(text):
+    """Normalize whitespace in a string for comparison."""
+    return ' '.join(text.split())
 
 def _apply_diff_with_subprocess(diff, lines, reverse=False):
     # call out to patch program
@@ -29,6 +32,7 @@ def _apply_diff_with_subprocess(diff, lines, reverse=False):
 
     args = [
         patchexec,
+        '--ignore-whitespace',  # Added this flag
         '--reverse' if reverse else '--forward',
         '--quiet',
         '--no-backup-if-mismatch',
@@ -62,13 +66,11 @@ def _apply_diff_with_subprocess(diff, lines, reverse=False):
 
     return lines, rejlines
 
-
 def _reverse(changes):
     def _reverse_change(c):
         return c._replace(old=c.new, new=c.old)
 
     return [_reverse_change(c) for c in changes]
-
 
 def apply_diff(diff, text, reverse=False, use_patch=False):
     try:
@@ -93,7 +95,7 @@ def apply_diff(diff, text, reverse=False, use_patch=False):
                     ),
                     hunk=hunk,
                 )
-            if lines[old - 1] != line:
+            if _normalize_whitespace(lines[old - 1]) != _normalize_whitespace(line):  # Modified this line
                 raise HunkApplyException(
                     'context line {n}, "{line}" does not match "{sl}"'.format(
                         n=old, line=line, sl=lines[old - 1]

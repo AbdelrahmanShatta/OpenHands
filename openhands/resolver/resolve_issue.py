@@ -54,6 +54,7 @@ def initialize_runtime(
     logger.info('-' * 30)
     obs: Observation
 
+    # Change to working directory
     action = CmdRunAction(command='cd /workspace')
     logger.info(action, extra={'msg_type': 'ACTION'})
     obs = runtime.run_action(action)
@@ -61,20 +62,21 @@ def initialize_runtime(
     if not isinstance(obs, CmdOutputObservation) or obs.exit_code != 0:
         raise RuntimeError(f'Failed to change directory to /workspace.\n{obs}')
 
+    # Configure git pager
     action = CmdRunAction(command='git config --global core.pager ""')
     logger.info(action, extra={'msg_type': 'ACTION'})
     obs = runtime.run_action(action)
     logger.info(obs, extra={'msg_type': 'OBSERVATION'})
     if not isinstance(obs, CmdOutputObservation) or obs.exit_code != 0:
         raise RuntimeError(f'Failed to set git config.\n{obs}')
-    
-    action = CmdRunAction(command='git config --global apply.whitespace fix ""')
+
+    # Apply patch with git
+    action = CmdRunAction(command='git apply --reject --whitespace=fix your_patch.diff')
     logger.info(action, extra={'msg_type': 'ACTION'})
     obs = runtime.run_action(action)
     logger.info(obs, extra={'msg_type': 'OBSERVATION'})
     if not isinstance(obs, CmdOutputObservation) or obs.exit_code != 0:
-        raise RuntimeError(f'Failed to set git config.\n{obs}')
-
+        raise RuntimeError(f'Failed to apply patch.\n{obs}')
 async def complete_runtime(
     runtime: Runtime,
     base_commit: str,
